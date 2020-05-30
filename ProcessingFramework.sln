@@ -3,7 +3,7 @@ Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio Version 16
 VisualStudioVersion = 16.0.29728.190
 MinimumVisualStudioVersion = 10.0.40219.1
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "PipelineExecutor", "PipelineExecutor\PipelineExecutor.csproj", "{491422B7-393B-4421-BE9E-5B70E7746CC1}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Functions", "Functions\Functions.csproj", "{491422B7-393B-4421-BE9E-5B70E7746CC1}"
 EndProject
 Project("{00D1A9C2-B5F0-4AF3-8072-F6C62B433612}") = "MetadataDB", "MetadataDB\MetadataDB.sqlproj", "{202EBF84-A56B-4999-92A3-10F7FFE4EF25}"
 EndProject
@@ -11,8 +11,13 @@ Project("{151D2E53-A2C4-4D7D-83FE-D05416EBD58E}") = "DeploymentTools", "Deployme
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Markdown", "Markdown", "{C7297C57-3403-473B-AA2A-31012A4A9ADF}"
 	ProjectSection(SolutionItems) = preProject
+		CODE_OF_CONDUCT.md = CODE_OF_CONDUCT.md
+		CONTRIBUTING.md = CONTRIBUTING.md
 		DeploymentTools\Deployment Steps.md = DeploymentTools\Deployment Steps.md
+		.github\ISSUE_TEMPLATE\feature_request.md = .github\ISSUE_TEMPLATE\feature_request.md
 		Glossary.md = Glossary.md
+		.github\ISSUE_TEMPLATE\i-ve-found-a-bug.md = .github\ISSUE_TEMPLATE\i-ve-found-a-bug.md
+		LICENSE = LICENSE
 		README.md = README.md
 	EndProjectSection
 EndProject
@@ -25,8 +30,8 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "dataset", "dataset", "{997E
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "linkedService", "linkedService", "{6B27406C-2C36-4BA1-AFC8-CEFC960D8EE6}"
 	ProjectSection(SolutionItems) = preProject
+		DataFactory\linkedService\FrameworkFunctions.json = DataFactory\linkedService\FrameworkFunctions.json
 		DataFactory\linkedService\Keys.json = DataFactory\linkedService\Keys.json
-		DataFactory\linkedService\PipelineExecutor.json = DataFactory\linkedService\PipelineExecutor.json
 		DataFactory\linkedService\SupportDatabase.json = DataFactory\linkedService\SupportDatabase.json
 	EndProjectSection
 EndProject
@@ -82,6 +87,7 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "DataFactory", "DataFactory"
 		ARM Templates\Data Factory\v1.3 Export.json = ARM Templates\Data Factory\v1.3 Export.json
 		ARM Templates\Data Factory\v1.4 Export.json = ARM Templates\Data Factory\v1.4 Export.json
 		ARM Templates\Data Factory\v1.5 Export.json = ARM Templates\Data Factory\v1.5 Export.json
+		ARM Templates\Data Factory\v1.6 Export.json = ARM Templates\Data Factory\v1.6 Export.json
 	EndProjectSection
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "trigger", "trigger", "{FC7877EF-110F-4AD7-B203-EEECE6F08A86}"
@@ -95,6 +101,16 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "PowerBI", "PowerBI", "{EBC2
 	ProjectSection(SolutionItems) = preProject
 		Reporting\PowerBI\Executions Overview.pbit = Reporting\PowerBI\Executions Overview.pbit
 		Reporting\PowerBI\Executions Overview.pbix = Reporting\PowerBI\Executions Overview.pbix
+	EndProjectSection
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "SQL Database", "SQL Database", "{20313ECA-118E-408D-BB42-8094A7A9CD20}"
+	ProjectSection(SolutionItems) = preProject
+		ARM Templates\SQL Database\v1.6 Export.json = ARM Templates\SQL Database\v1.6 Export.json
+	EndProjectSection
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Functions App", "Functions App", "{463330CD-189F-42B4-984A-8D3C1385645B}"
+	ProjectSection(SolutionItems) = preProject
+		ARM Templates\Functions App\v1.6 Export.json = ARM Templates\Functions App\v1.6 Export.json
 	EndProjectSection
 EndProject
 Global
@@ -130,6 +146,8 @@ Global
 		{C8F387D0-13CC-4AA5-892C-91D2F3403B55} = {CC7B607B-8C84-4E07-A6C8-326923752F92}
 		{FC7877EF-110F-4AD7-B203-EEECE6F08A86} = {E081CE7B-3DE2-4AB7-8C3A-E58A075BD6F5}
 		{EBC230DF-D45D-43E4-A74E-32ADA3DDAE7A} = {5A56A63A-351D-467D-A2DA-FDB3C9CBD252}
+		{20313ECA-118E-408D-BB42-8094A7A9CD20} = {CC7B607B-8C84-4E07-A6C8-326923752F92}
+		{463330CD-189F-42B4-984A-8D3C1385645B} = {CC7B607B-8C84-4E07-A6C8-326923752F92}
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
 		SolutionGuid = {170F5302-BB9C-4569-8F43-D859C7678EF0}
