@@ -11,14 +11,19 @@ BEGIN
 	IF @CallingDataFactory IS NULL
 		SET @CallingDataFactory = 'Unknown';
 
-	--get restart overide property
-	SELECT
-		@RestartStatus = [PropertyValue] 
-	FROM
-		[procfwk].[CurrentProperties]
-	WHERE
-		[PropertyName] = 'OverideRestart'
-	
+	--get restart overide property	
+	SELECT @RestartStatus = [procfwk].[GetPropertyValueInternal]('OverideRestart')
+
+	--check for running execution
+	IF EXISTS
+		(
+		SELECT * FROM [procfwk].[CurrentExecution] WHERE ISNULL([PipelineStatus],'') = 'Running'
+		)
+		BEGIN
+			RAISERROR('There is already an execution run in progress. Stop this via Data Factory before restarting.',16,1);
+			RETURN 0;
+		END;	
+
 	--reset and restart execution
 	IF EXISTS
 		(
@@ -36,6 +41,8 @@ BEGIN
 		AND @RestartStatus = 1
 		BEGIN
 			EXEC [procfwk].[UpdateExecutionLog]
+				@PerformErrorCheck = 0; --Special case when OverideRestart = 1;
+
 			EXEC [procfwk].[CreateNewExecution] 
 				@CallingDataFactoryName = @CallingDataFactory
 		END

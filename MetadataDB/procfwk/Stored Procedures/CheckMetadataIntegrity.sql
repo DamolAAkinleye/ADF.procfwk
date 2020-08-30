@@ -17,6 +17,16 @@ BEGIN
 	Check 8 - Does the TenantId property still have its default value?
 	Check 9 - Does the SubscriptionId property still have its default value?
 	Check 10 - Is there a current PipelineStatusCheckDuration property available?
+	Check 11 - Is there a current UseFrameworkEmailAlerting property available?
+	Check 12 - Is there a current EmailAlertBodyTemplate property available?
+	Check 13 - Does the total size of the request body for the pipeline parameters added exceed the Azure Functions size limit when the Worker execute pipeline body is created?
+	Check 14 - Is there a current FailureHandling property available?
+	Check 15 - Does the FailureHandling property have a valid value?
+	Check 16 - When using DependencyChain failure handling, are there any dependants in the same execution stage of the predecessor?
+	Check 17 - Does the SPNHandlingMethod property have a valid value?
+	Check 18 - Does the Service Principal table contain both types of SPN handling for a single credential?
+	---------------------------------------------------------------------------------------------------------------------------------
+	Check A: - Are there any Running pipelines that need to be cleaned up?
 	*/
 
 	DECLARE @ErrorDetails VARCHAR(500)
@@ -25,6 +35,10 @@ BEGIN
 		[CheckNumber] INT NOT NULL,
 		[IssuesFound] VARCHAR(MAX) NOT NULL
 		)
+
+	/*
+	Checks:
+	*/
 
 	--Check 1:
 	IF NOT EXISTS
@@ -133,9 +147,7 @@ BEGIN
 		END;
 
 	--Check 8:
-	IF (
-		SELECT [PropertyValue] FROM [procfwk].[CurrentProperties] WHERE [PropertyName] = 'TenantId'
-		) = '1234-1234-1234-1234-1234'
+	IF ([procfwk].[GetPropertyValueInternal]('TenantId')) = '1234-1234-1234-1234-1234'
 		BEGIN
 			INSERT INTO @MetadataIntegrityIssues
 			VALUES
@@ -146,9 +158,7 @@ BEGIN
 		END;
 
 	--Check 9:
-	IF (
-		SELECT [PropertyValue] FROM [procfwk].[CurrentProperties] WHERE [PropertyName] = 'SubscriptionId'
-		) = '1234-1234-1234-1234-1234'
+	IF ([procfwk].[GetPropertyValueInternal]('SubscriptionId')) = '1234-1234-1234-1234-1234'
 		BEGIN
 			INSERT INTO @MetadataIntegrityIssues
 			VALUES
@@ -172,6 +182,174 @@ BEGIN
 				)		
 		END;
 
+	--Check 11:
+	IF NOT EXISTS
+		(
+		SELECT * FROM [procfwk].[CurrentProperties] WHERE [PropertyName] = 'UseFrameworkEmailAlerting'
+		)
+		BEGIN
+			INSERT INTO @MetadataIntegrityIssues
+			VALUES
+				( 
+				11,
+				'A current UseFrameworkEmailAlerting value is missing from the properties table.'
+				)		
+		END;
+
+	--Check 12:
+	IF (
+		SELECT
+			[PropertyValue]
+		FROM
+			[procfwk].[CurrentProperties]
+		WHERE
+			[PropertyName] = 'UseFrameworkEmailAlerting'
+		) = 1
+		BEGIN
+			IF NOT EXISTS
+				(
+				SELECT * FROM [procfwk].[CurrentProperties] WHERE [PropertyName] = 'EmailAlertBodyTemplate'
+				)
+				BEGIN
+					INSERT INTO @MetadataIntegrityIssues
+					VALUES
+						( 
+						12,
+						'A current EmailAlertBodyTemplate value is missing from the properties table.'
+						)		
+				END;
+		END;
+
+	--Check 13:
+	IF EXISTS
+		(
+		SELECT * FROM [procfwk].[PipelineParameterDataSizes] WHERE [Size] > 9
+		/*
+		Azure Function request limit is 10MB.
+		https://docs.microsoft.com/en-us/azure/azure-functions/functions-scale
+		9MB to allow for other content in execute pipeline body request.
+		*/
+		)
+		BEGIN
+			INSERT INTO @MetadataIntegrityIssues
+			VALUES
+				( 
+				13,
+				'The pipeline parameters entered exceed the Azure Function request body maximum of 10MB. Query view [procfwk].[PipelineParameterDataSizes] for details.'
+				)	
+		END;
+
+	--Check 14:
+	IF NOT EXISTS
+		(
+		SELECT * FROM [procfwk].[CurrentProperties] WHERE [PropertyName] = 'FailureHandling'
+		)
+		BEGIN
+			INSERT INTO @MetadataIntegrityIssues
+			VALUES
+				( 
+				14,
+				'A current FailureHandling value is missing from the properties table.'
+				)		
+		END;
+
+	--Check 15:
+	IF NOT EXISTS
+		(
+		SELECT 
+			*
+		FROM
+			[procfwk].[CurrentProperties] 
+		WHERE 
+			[PropertyName] = 'FailureHandling' 
+			AND [PropertyValue] IN ('None','Simple','DependencyChain')
+		)
+		BEGIN
+			INSERT INTO @MetadataIntegrityIssues
+			VALUES
+				( 
+				15,
+				'The property FailureHandling does not have a supported value.'
+				)	
+		END;
+
+	--Check 16:
+	IF ([procfwk].[GetPropertyValueInternal]('FailureHandling')) = 'DependencyChain'
+	BEGIN
+		IF EXISTS
+		(
+		SELECT 
+			pd.[DependencyId]
+		FROM 
+			[procfwk].[PipelineDependencies] pd
+			INNER JOIN [procfwk].[Pipelines] pp
+				ON pd.[PipelineId] = pp.[PipelineId]
+			INNER JOIN [procfwk].[Pipelines] dp
+				ON pd.[DependantPipelineId] = dp.[PipelineId]
+		WHERE
+			pp.[StageId] = dp.[StageId]
+		)	
+		BEGIN
+			INSERT INTO @MetadataIntegrityIssues
+			VALUES
+				( 
+				16,
+				'A dependant pipeline and its upstream predecessor exist in the same execution stage. Fix this dependency chain to allow correct failure handling.'
+				)	
+		END;
+	END;
+
+	--Check 17:
+	IF NOT EXISTS
+		(
+		SELECT 
+			*
+		FROM
+			[procfwk].[CurrentProperties] 
+		WHERE 
+			[PropertyName] = 'SPNHandlingMethod' 
+			AND [PropertyValue] IN ('StoreInDatabase','StoreInKeyVault')
+		)
+		BEGIN
+			INSERT INTO @MetadataIntegrityIssues
+			VALUES
+				( 
+				17,
+				'The property SPNHandlingMethod does not have a supported value.'
+				)	
+		END;
+
+	--Check 18:
+	IF EXISTS
+		(
+		SELECT
+			*
+		FROM
+			[dbo].[ServicePrincipals]
+		WHERE
+			(
+			[PrincipalId] IS NOT NULL
+			OR [PrincipalSecret] IS NOT NULL
+			)
+			AND 
+			(
+			[PrincipalIdUrl] IS NOT NULL
+			OR [PrincipalSecretUrl] IS NOT NULL
+			)
+		)
+		BEGIN
+			INSERT INTO @MetadataIntegrityIssues
+			VALUES
+				( 
+				18,
+				'The table [dbo].[ServicePrincipals] can only have one method of SPN details sorted per credential ID.'
+				)	
+		END;
+
+	/*
+	Integrity Checks Outcome:
+	*/
+	
 	--throw runtime error if checks fail
 	IF EXISTS
 		(
@@ -179,11 +357,57 @@ BEGIN
 		)
 		AND @DebugMode = 0
 		BEGIN
-			SET @ErrorDetails = 'Metadata integrity check failed. Run EXEC [procfwk].[CheckMetadataIntegrity] @DebugMode = 1 in debug mode for details.'
+			SET @ErrorDetails = 'Metadata integrity checks failed. Run EXEC [procfwk].[CheckMetadataIntegrity] @DebugMode = 1; for details.'
 
 			RAISERROR(@ErrorDetails, 16, 1);
 			RETURN 0;
-		END
+		END;
+
+	/*
+	Previous Exeuction Checks:
+	*/
+	
+	--Check A:
+	IF EXISTS
+		(
+		SELECT [LocalExecutionId] FROM [procfwk].[CurrentExecution] WHERE [PipelineStatus] NOT IN ('Success','Failed','Blocked') AND [AdfPipelineRunId] IS NOT NULL
+		)
+		BEGIN
+			--return pipelines details that require a clean up
+			SELECT 
+				[procfwk].[GetPropertyValueInternal]('TenantId') AS TenantId,
+				[procfwk].[GetPropertyValueInternal]('SubscriptionId') AS SubscriptionId,
+				[ResourceGroupName],
+				[DataFactoryName],
+				[PipelineName],
+				[AdfPipelineRunId],
+				[LocalExecutionId],
+				[StageId],
+				[PipelineId]
+			FROM 
+				[procfwk].[CurrentExecution]
+			WHERE 
+				[PipelineStatus] NOT IN ('Success','Failed','Blocked','Cancelled') 
+				AND [AdfPipelineRunId] IS NOT NULL
+		END;
+	ELSE
+		BEGIN
+			--lookup activity must return something, even if just an empty dataset
+			SELECT 
+				NULL AS TenantId,
+				NULL AS SubscriptionId,
+				NULL AS ResourceGroupName,
+				NULL AS DataFactoryName,
+				NULL AS PipelineName,
+				NULL AS AdfPipelineRunId,
+				NULL AS LocalExecutionId,
+				NULL AS StageId,
+				NULL AS PipelineId
+			FROM
+				[procfwk].[CurrentExecution]
+			WHERE
+				1 = 2; --ensure no results
+		END;
 
 	--report issues when in debug mode
 	IF @DebugMode = 1
@@ -192,8 +416,12 @@ BEGIN
 			(
 			SELECT * FROM @MetadataIntegrityIssues
 			)
-			PRINT 'No data integrity issues found in metadata.'
+			BEGIN
+				PRINT 'No data integrity issues found in metadata.'
+			END
 		ELSE		
-			SELECT * FROM @MetadataIntegrityIssues;
+			BEGIN
+				SELECT * FROM @MetadataIntegrityIssues;
+			END;
 	END;
-END
+END;
